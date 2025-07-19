@@ -1,5 +1,5 @@
 "use client";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 interface ControlsProps {
   canvasRef: React.RefObject<HTMLCanvasElement>;
@@ -7,8 +7,33 @@ interface ControlsProps {
 
 export default function Controls({ canvasRef }: ControlsProps) {
   const [isRecording, setIsRecording] = useState(false);
-  const [recordedUrl, setRecordedUrl] = useState<string | null>(null);
   const [stopFunc, setStopFunc] = useState<(() => Promise<Blob>) | null>(null);
+  const [recordedUrl, setRecordedUrl] = useState<string | null>(null);
+    
+  useEffect(() => {
+    const stored = localStorage.getItem("recorded-video");
+    if (stored) {
+      setRecordedUrl(stored);
+    }
+  }, []);
+  useEffect(() => {
+    const stored = localStorage.getItem("recorded-video");
+    if (stored) {
+      setRecordedUrl(stored);
+    }
+  }, []);
+
+  const [toast, setToast] = useState(false);
+  const blobToBase64 = (blob: Blob): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        resolve(reader.result as string);
+      };
+      reader.onerror = reject;
+      reader.readAsDataURL(blob);
+    });
+  };
 
   const handleStart = async () => {
     if (!canvasRef.current) return;
@@ -22,10 +47,12 @@ export default function Controls({ canvasRef }: ControlsProps) {
   const handleStop = async () => {
     if (!stopFunc) return;
     const blob = await stopFunc();
-    const url = URL.createObjectURL(blob);
-    setRecordedUrl(url);
-    localStorage.setItem("recorded-video", url);
+    const base64 = await blobToBase64(blob);
+    setRecordedUrl(base64);
+    localStorage.setItem("recorded-video", base64);
     setIsRecording(false);
+    setToast(true);
+    setTimeout(() => setToast(false), 3000);
   };
 
   return (
@@ -54,6 +81,11 @@ export default function Controls({ canvasRef }: ControlsProps) {
         >
           Download Video
         </a>
+      )}
+      {toast && (
+        <div className="mt-4 text-green-600 font-semibold">
+          Video saved successfully!
+        </div>
       )}
     </div>
   );
