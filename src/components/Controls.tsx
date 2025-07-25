@@ -3,19 +3,16 @@ import { useState, useEffect } from "react";
 
 interface ControlsProps {
   canvasRef: React.RefObject<HTMLCanvasElement>;
+  videoRef: React.RefObject<HTMLVideoElement>;
 }
 
-export default function Controls({ canvasRef }: ControlsProps) {
+export default function Controls({ canvasRef, videoRef }: ControlsProps) {
   const [isRecording, setIsRecording] = useState(false);
   const [stopFunc, setStopFunc] = useState<(() => Promise<Blob>) | null>(null);
   const [recordedUrl, setRecordedUrl] = useState<string | null>(null);
-    
-  useEffect(() => {
-    const stored = localStorage.getItem("recorded-video");
-    if (stored) {
-      setRecordedUrl(stored);
-    }
-  }, []);
+  const [withAudio, setWithAudio] = useState(true);
+  const [toast, setToast] = useState(false);
+
   useEffect(() => {
     const stored = localStorage.getItem("recorded-video");
     if (stored) {
@@ -23,22 +20,26 @@ export default function Controls({ canvasRef }: ControlsProps) {
     }
   }, []);
 
-  const [toast, setToast] = useState(false);
   const blobToBase64 = (blob: Blob): Promise<string> => {
     return new Promise((resolve, reject) => {
       const reader = new FileReader();
-      reader.onloadend = () => {
-        resolve(reader.result as string);
-      };
+      reader.onloadend = () => resolve(reader.result as string);
       reader.onerror = reject;
       reader.readAsDataURL(blob);
     });
   };
 
   const handleStart = async () => {
-    if (!canvasRef.current) return;
-    const { stop } = await import("../utils/recorder").then((mod) =>
-      mod.startRecording(canvasRef.current!)
+    if (!canvasRef.current || !videoRef.current) {
+      console.error("Canvas or video not ready");
+      return;
+    }
+
+    const { startRecording } = await import("../utils/recorder");
+    const { stop } = startRecording(
+      canvasRef.current,
+      videoRef.current,
+      withAudio
     );
     setStopFunc(() => stop);
     setIsRecording(true);
@@ -46,6 +47,7 @@ export default function Controls({ canvasRef }: ControlsProps) {
 
   const handleStop = async () => {
     if (!stopFunc) return;
+
     const blob = await stopFunc();
     const base64 = await blobToBase64(blob);
     setRecordedUrl(base64);
@@ -56,7 +58,19 @@ export default function Controls({ canvasRef }: ControlsProps) {
   };
 
   return (
-    <div className="flex gap-4 mt-6 justify-center">
+    <div className="flex flex-col gap-4 mt-6 items-center">
+      <div className="flex items-center gap-2">
+        <input
+          type="checkbox"
+          checked={withAudio}
+          onChange={() => setWithAudio(!withAudio)}
+          id="audioToggle"
+        />
+        <label htmlFor="audioToggle" className="text-white">
+          Record with Audio
+        </label>
+      </div>
+
       {!isRecording ? (
         <button
           onClick={handleStart}
@@ -83,7 +97,7 @@ export default function Controls({ canvasRef }: ControlsProps) {
         </a>
       )}
       {toast && (
-        <div className="mt-4 text-green-600 font-semibold">
+        <div className="mt-2 text-green-400 font-semibold">
           Video saved successfully!
         </div>
       )}

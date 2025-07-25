@@ -1,27 +1,38 @@
-export const startRecording = (canvas: HTMLCanvasElement) => {
-  const stream = canvas.captureStream(30); // 30 FPS
-  const recordedChunks: Blob[] = [];
+export function startRecording(
+  canvas: HTMLCanvasElement,
+  video: HTMLVideoElement,
+  withAudio: boolean
+) {
+  const canvasStream = canvas.captureStream(30); // 30 FPS
+  let combinedStream: MediaStream;
 
-  const mediaRecorder = new MediaRecorder(stream, {
-    mimeType: "video/webm; codecs=vp9",
-  });
+  if (withAudio) {
+    const audioTracks = (video.srcObject as MediaStream).getAudioTracks();
+    combinedStream = new MediaStream([
+      ...canvasStream.getVideoTracks(),
+      ...audioTracks,
+    ]);
+  } else {
+    combinedStream = new MediaStream(canvasStream.getVideoTracks());
+  }
 
-  mediaRecorder.ondataavailable = (e) => {
-    if (e.data.size > 0) {
-      recordedChunks.push(e.data);
-    }
+  const recorder = new MediaRecorder(combinedStream);
+  const chunks: Blob[] = [];
+
+  recorder.ondataavailable = (e) => {
+    if (e.data.size > 0) chunks.push(e.data);
   };
 
-  const stop = () =>
-    new Promise<Blob>((resolve) => {
-      mediaRecorder.onstop = () => {
-        const blob = new Blob(recordedChunks, { type: "video/webm" });
-        resolve(blob);
-      };
-      mediaRecorder.stop();
-    });
+  recorder.start();
 
-  mediaRecorder.start();
-
-  return { stop };
-};
+  return {
+    stop: () =>
+      new Promise<Blob>((resolve) => {
+        recorder.onstop = () => {
+          const blob = new Blob(chunks, { type: "video/webm" });
+          resolve(blob);
+        };
+        recorder.stop();
+      }),
+  };
+}
