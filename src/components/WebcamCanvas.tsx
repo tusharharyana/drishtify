@@ -7,7 +7,6 @@ export default function WebcamCanvas() {
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [modelsLoaded, setModelsLoaded] = useState(false);
-  const [withAudio, setWithAudio] = useState(true);
 
   useEffect(() => {
     const loadModels = async () => {
@@ -23,7 +22,7 @@ export default function WebcamCanvas() {
       try {
         const stream = await navigator.mediaDevices.getUserMedia({
           video: true,
-          audio: withAudio, 
+          audio: true,
         });
         if (videoRef.current) {
           videoRef.current.srcObject = stream;
@@ -34,7 +33,7 @@ export default function WebcamCanvas() {
       }
     };
     setupCamera();
-  }, [withAudio]);
+  }, []);
 
   useEffect(() => {
     if (!modelsLoaded) return;
@@ -70,28 +69,12 @@ export default function WebcamCanvas() {
   }, [modelsLoaded]);
 
   return (
-    <div className="flex flex-col items-center gap-4">
-      <div className="flex items-center gap-4">
-        <span className="font-medium">Audio:</span>
-        <button
-          onClick={() => setWithAudio(!withAudio)}
-          className={`w-14 h-8 flex items-center rounded-full p-1 transition-colors duration-300 ${
-            withAudio ? "bg-green-500" : "bg-gray-300"
-          }`}
-        >
-          <div
-            className={`w-6 h-6 bg-white rounded-full shadow-md transform transition-transform duration-300 ${
-              withAudio ? "translate-x-6" : "translate-x-0"
-            }`}
-          />
-        </button>
-        <span className="text-sm text-gray-600">
-          {withAudio ? "On" : "Off"}
-        </span>
-      </div>
-
-      <video ref={videoRef} className="hidden" muted playsInline />
-      <canvas ref={canvasRef} className="rounded-md shadow max-w-full border" />
+    <div className="flex flex-col items-center gap-6 p-4">
+      <video ref={videoRef} autoPlay muted playsInline className="hidden" />
+      <canvas
+        ref={canvasRef}
+        className="rounded-lg shadow-lg border border-gray-300"
+      />
       <Controls canvasRef={canvasRef} videoRef={videoRef} />
     </div>
   );

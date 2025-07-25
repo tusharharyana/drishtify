@@ -1,7 +1,7 @@
 export function startRecording(
   canvas: HTMLCanvasElement,
   video: HTMLVideoElement,
-  withAudio: boolean
+  withAudio: boolean = true
 ) {
   const canvasStream = canvas.captureStream(30); // 30 FPS
   let combinedStream: MediaStream;

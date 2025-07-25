@@ -1,5 +1,10 @@
 "use client";
 import { useState, useEffect } from "react";
+import {
+  PlayCircleIcon,
+  StopCircleIcon,
+  ArrowDownCircleIcon,
+} from "@heroicons/react/24/solid";
 
 interface ControlsProps {
   canvasRef: React.RefObject<HTMLCanvasElement>;
@@ -10,7 +15,6 @@ export default function Controls({ canvasRef, videoRef }: ControlsProps) {
   const [isRecording, setIsRecording] = useState(false);
   const [stopFunc, setStopFunc] = useState<(() => Promise<Blob>) | null>(null);
   const [recordedUrl, setRecordedUrl] = useState<string | null>(null);
-  const [withAudio, setWithAudio] = useState(true);
   const [toast, setToast] = useState(false);
 
   useEffect(() => {
@@ -36,11 +40,7 @@ export default function Controls({ canvasRef, videoRef }: ControlsProps) {
     }
 
     const { startRecording } = await import("../utils/recorder");
-    const { stop } = startRecording(
-      canvasRef.current,
-      videoRef.current,
-      withAudio
-    );
+    const { stop } = startRecording(canvasRef.current, videoRef.current, true);
     setStopFunc(() => stop);
     setIsRecording(true);
   };
@@ -59,45 +59,39 @@ export default function Controls({ canvasRef, videoRef }: ControlsProps) {
 
   return (
     <div className="flex flex-col gap-4 mt-6 items-center">
-      <div className="flex items-center gap-2">
-        <input
-          type="checkbox"
-          checked={withAudio}
-          onChange={() => setWithAudio(!withAudio)}
-          id="audioToggle"
-        />
-        <label htmlFor="audioToggle" className="text-white">
-          Record with Audio
-        </label>
+      <div className="flex gap-4">
+        {!isRecording ? (
+          <button
+            onClick={handleStart}
+            className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-md shadow hover:bg-green-700"
+          >
+            <PlayCircleIcon className="w-6 h-6" />
+            Start
+          </button>
+        ) : (
+          <button
+            onClick={handleStop}
+            className="flex items-center gap-2 px-4 py-2 bg-red-600 text-white rounded-md shadow hover:bg-red-700"
+          >
+            <StopCircleIcon className="w-6 h-6" />
+            Stop
+          </button>
+        )}
+
+        {recordedUrl && (
+          <a
+            href={recordedUrl}
+            download="face-tracked-video.webm"
+            className="flex items-center gap-2 px-4 py-2 bg-blue-500 text-white rounded-md shadow hover:bg-blue-600"
+          >
+            <ArrowDownCircleIcon className="w-6 h-6" />
+            Download
+          </a>
+        )}
       </div>
 
-      {!isRecording ? (
-        <button
-          onClick={handleStart}
-          className="px-4 py-2 bg-green-600 text-white rounded-md shadow"
-        >
-          Start Recording
-        </button>
-      ) : (
-        <button
-          onClick={handleStop}
-          className="px-4 py-2 bg-red-600 text-white rounded-md shadow"
-        >
-          Stop Recording
-        </button>
-      )}
-
-      {recordedUrl && (
-        <a
-          href={recordedUrl}
-          download="face-tracked-video.webm"
-          className="px-4 py-2 bg-blue-500 text-white rounded-md shadow"
-        >
-          Download Video
-        </a>
-      )}
       {toast && (
-        <div className="mt-2 text-green-400 font-semibold">
+        <div className="mt-2 text-green-500 font-semibold">
           Video saved successfully!
         </div>
       )}
